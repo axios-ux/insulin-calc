@@ -1,0 +1,2559 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#EC4899">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="حاسبة الإنسولين">
+  <meta name="description" content="حاسبة إنسولين ذكية لمرضى السكري النوع الأول">
+  <title>حاسبة الإنسولين الذكية</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+  <style>
+    /* ===== CSS VARIABLES & RESET ===== */
+    :root {
+      --primary: #EC4899;
+      --primary-light: #F472B6;
+      --primary-lighter: #F9A8D4;
+      --primary-lightest: #FCE7F3;
+      --primary-dark: #BE185D;
+      --primary-darker: #831843;
+      --accent: #F43F5E;
+      --bg-gradient-start: #FFF0F5;
+      --bg-gradient-end: #FFE4EC;
+      --card-bg: rgba(255, 255, 255, 0.92);
+      --text-primary: #831843;
+      --text-secondary: #9D174D;
+      --text-muted: #BE185D;
+      --border: #F9A8D4;
+      --shadow: 0 4px 20px rgba(236, 72, 153, 0.15);
+      --shadow-lg: 0 8px 32px rgba(236, 72, 153, 0.2);
+      --radius: 20px;
+      --radius-lg: 24px;
+      --radius-sm: 14px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    *:focus {
+      outline: none;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', 'Tahoma', 'Geneva', 'Verdana', 'Arial', sans-serif;
+      background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+      color: var(--text-primary);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--primary-lighter); border-radius: 4px; }
+
+    /* ===== LAYOUT ===== */
+    #app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ===== HEADER ===== */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      padding: 16px 20px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      z-index: 100;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-header::before {
+      content: '';
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 100px;
+      height: 100px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 50%;
+    }
+
+    .app-header::after {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: -20px;
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 50%;
+    }
+
+    .app-header h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    .app-header .heart-icon {
+      width: 28px;
+      height: 28px;
+      fill: white;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      padding-bottom: 90px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .screen {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(249, 168, 212, 0.3);
+      backdrop-filter: blur(10px);
+      transition: var(--transition);
+    }
+
+    .card:active {
+      transform: scale(0.98);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      width: 24px;
+      height: 24px;
+      color: var(--primary);
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.35);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 24px rgba(236, 72, 153, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--primary-lightest);
+      color: var(--primary-dark);
+      border: 2px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10B981, #34D399);
+      color: white;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--accent), #FB7185);
+      color: white;
+      box-shadow: 0 4px 16px rgba(244, 63, 94, 0.35);
+    }
+
+    .btn-sm {
+      padding: 10px 16px;
+      font-size: 0.9rem;
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    .btn-fab {
+      position: fixed;
+      bottom: 90px;
+      left: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      font-size: 28px;
+      box-shadow: 0 4px 20px rgba(236, 72, 153, 0.4);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-fab:active {
+      transform: scale(0.9);
+    }
+
+    /* ===== FORMS ===== */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text-primary);
+      background: white;
+      transition: var(--transition);
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.15);
+    }
+
+    .form-input::placeholder {
+      color: var(--primary-lighter);
+    }
+
+    .form-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ===== BOTTOM NAVIGATION ===== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(249, 168, 212, 0.4);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0 16px;
+      z-index: 100;
+      box-shadow: 0 -4px 20px rgba(236, 72, 153, 0.1);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: var(--transition);
+      border-radius: 16px;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      background: var(--primary-lightest);
+    }
+
+    .nav-item .icon {
+      width: 26px;
+      height: 26px;
+      transition: var(--transition);
+    }
+
+    .nav-item.active .icon {
+      transform: scale(1.1);
+    }
+
+    /* ===== HOME SCREEN ===== */
+    .welcome-card {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      text-align: center;
+      padding: 28px 20px;
+      border-radius: var(--radius-lg);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .welcome-card::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      left: -40px;
+      width: 120px;
+      height: 120px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 50%;
+    }
+
+    .welcome-card::after {
+      content: '';
+      position: absolute;
+      bottom: -30px;
+      right: -30px;
+      width: 100px;
+      height: 100px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 50%;
+    }
+
+    .welcome-card h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .welcome-card p {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      position: relative;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .quick-btn {
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .quick-btn:hover, .quick-btn:active {
+      border-color: var(--primary);
+      background: var(--primary-lightest);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+    }
+
+    .quick-btn .icon {
+      width: 36px;
+      height: 36px;
+      color: var(--primary);
+    }
+
+    .quick-btn span {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, var(--primary-lightest), white);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .last-dose-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .last-dose-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .last-dose-title {
+      font-weight: 700;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .last-dose-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .last-dose-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .dose-detail {
+      text-align: center;
+      padding: 10px;
+      background: var(--primary-lightest);
+      border-radius: var(--radius-sm);
+    }
+
+    .dose-detail-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .dose-detail-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ===== CALCULATOR SCREEN ===== */
+    .meal-section {
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .meal-type-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .meal-type-btn {
+      padding: 12px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: white;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+    }
+
+    .meal-type-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3);
+    }
+
+    .meal-item {
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .meal-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meal-item-name {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .meal-item-carbs {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .meal-item-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+      font-size: 1.1rem;
+    }
+
+    .icon-btn:hover { transform: scale(1.1); }
+
+    .icon-btn-edit { background: #FEF3C7; color: #D97706; }
+    .icon-btn-delete { background: #FFE4E6; color: var(--accent); }
+
+    .add-food-to-meal {
+      background: var(--primary-lightest);
+      border: 2px dashed var(--primary-lighter);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .add-food-to-meal:hover {
+      background: var(--border);
+      border-color: var(--primary);
+    }
+
+    .bg-section {
+      background: linear-gradient(135deg, #FEF2F2, #FFF1F2);
+      border: 2px solid #FECDD3;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .bg-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .result-card {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      text-align: center;
+      color: white;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-card::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 150px;
+      height: 150px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 50%;
+    }
+
+    .result-label {
+      font-size: 1rem;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .result-value {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .result-unit {
+      font-size: 1.1rem;
+      opacity: 0.85;
+    }
+
+    .result-breakdown {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .result-detail {
+      background: rgba(255,255,255,0.2);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      font-size: 0.85rem;
+    }
+
+    .result-detail-value {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    /* ===== FOODS SCREEN ===== */
+    .food-card {
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      transition: var(--transition);
+      animation: slideIn 0.3s ease;
+    }
+
+    .food-card:hover {
+      box-shadow: var(--shadow);
+    }
+
+    .food-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .food-name {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .food-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .food-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .search-box {
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .search-box .icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      color: var(--primary);
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 14px 44px 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text-primary);
+      background: white;
+      transition: var(--transition);
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.15);
+    }
+
+    /* ===== SETTINGS SCREEN ===== */
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(249, 168, 212, 0.3);
+    }
+
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+
+    .setting-info {
+      flex: 1;
+    }
+
+    .setting-name {
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .setting-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .setting-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .setting-input {
+      width: 70px;
+      padding: 10px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      font-family: inherit;
+    }
+
+    .setting-unit {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .section-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    /* ===== UNITS SCREEN ===== */
+    .unit-card {
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: slideIn 0.3s ease;
+    }
+
+    .unit-info-name {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .unit-info-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(131, 24, 67, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      width: 100%;
+      max-width: 450px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .modal-actions .btn {
+      flex: 1;
+    }
+
+    /* ===== TOAST ===== */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toast {
+      background: white;
+      color: var(--text-primary);
+      padding: 14px 24px;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg);
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: toastIn 0.3s ease;
+      border: 1px solid var(--border);
+      min-width: 250px;
+      justify-content: center;
+    }
+
+    .toast.success { border-color: #34D399; color: #059669; }
+    .toast.error { border-color: #FCA5A5; color: #DC2626; }
+    .toast.warning { border-color: #FCD34D; color: #D97706; }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon {
+      width: 64px;
+      height: 64px;
+      color: var(--primary-lighter);
+      margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-size: 0.9rem;
+    }
+
+    /* ===== HISTORY ===== */
+    .history-item {
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      animation: slideIn 0.3s ease;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .history-date {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .history-meal-type {
+      background: var(--primary-lightest);
+      color: var(--primary-dark);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .history-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .history-detail {
+      text-align: center;
+      padding: 10px;
+      background: var(--primary-lightest);
+      border-radius: var(--radius-sm);
+    }
+
+    .history-detail-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .history-detail-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ===== FOOD SELECTOR IN CALC ===== */
+    .food-selector-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(131, 24, 67, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 900;
+      display: none;
+      flex-direction: column;
+    }
+
+    .food-selector-overlay.active {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .food-selector {
+      background: white;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 24px;
+      margin-top: auto;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .food-selector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .food-selector-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .food-selector-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .food-selector-close:hover {
+      background: var(--primary-lightest);
+    }
+
+    .food-selector-search {
+      margin-bottom: 16px;
+    }
+
+    .food-selector-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .food-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px;
+      border-bottom: 1px solid rgba(249, 168, 212, 0.3);
+      cursor: pointer;
+      transition: var(--transition);
+      border-radius: var(--radius-sm);
+    }
+
+    .food-option:hover {
+      background: var(--primary-lightest);
+    }
+
+    .food-option-info {
+      flex: 1;
+    }
+
+    .food-option-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .food-option-carbs {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .food-option-add {
+      background: var(--primary-lightest);
+      color: var(--primary);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .food-option-add:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .quantity-input-section {
+      background: var(--primary-lightest);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .quantity-display {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .quantity-slider {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (min-width: 768px) {
+      .main-content {
+        max-width: 600px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .bottom-nav {
+        max-width: 600px;
+        margin: 0 auto;
+        right: 0;
+      }
+
+      .btn-fab {
+        left: calc(50% - 260px);
+      }
+    }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: var(--primary-lightest);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+    }
+
+    .tab.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 2px 8px rgba(236, 72, 153, 0.2);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* ===== PRINT/EXPORT SECTION ===== */
+    .export-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* ===== TOOLTIP ===== */
+    .tooltip-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: help;
+    }
+
+    .info-badge {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--primary-lighter);
+      color: var(--primary-dark);
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    /* ===== ANIMATED BACKGROUND ELEMENTS ===== */
+    .floating-shape {
+      position: fixed;
+      border-radius: 50%;
+      background: rgba(236, 72, 153, 0.04);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .shape-1 {
+      width: 200px;
+      height: 200px;
+      top: 10%;
+      right: -60px;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .shape-2 {
+      width: 150px;
+      height: 150px;
+      bottom: 20%;
+      left: -40px;
+      animation: float 10s ease-in-out infinite reverse;
+    }
+
+    .shape-3 {
+      width: 100px;
+      height: 100px;
+      top: 50%;
+      right: 10%;
+      animation: float 12s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(10deg); }
+    }
+
+    /* Safe area for iPhone */
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .bottom-nav {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+      }
+      .main-content {
+        padding-bottom: calc(90px + env(safe-area-inset-bottom));
+      }
+      .btn-fab {
+        bottom: calc(90px + env(safe-area-inset-bottom));
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating Background Shapes -->
+  <div class="floating-shape shape-1"></div>
+  <div class="floating-shape shape-2"></div>
+  <div class="floating-shape shape-3"></div>
+
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>
+        <svg class="heart-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="currentColor"/>
+        </svg>
+        حاسبة الإنسولين الذكية
+      </h1>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <!-- ===== HOME SCREEN ===== -->
+      <div class="screen active" id="screen-home">
+        <div class="welcome-card">
+          <h2 id="welcome-message">أهلاً بكِ</h2>
+          <p>هذا تطبيق باش يعاون رمرومي تحسب سكر متاعها</p>
+        </div>
+
+        <div class="quick-actions">
+          <div class="quick-btn" onclick="navigateTo('calc')">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/>
+            </svg>
+            <span>حاسبة الوجبة</span>
+          </div>
+          <div class="quick-btn" onclick="navigateTo('foods')">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 16a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm1-5h-2V7h2z"/>
+            </svg>
+            <span>الأطعمة</span>
+          </div>
+          <div class="quick-btn" onclick="navigateTo('settings')">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>الإعدادات</span>
+          </div>
+          <div class="quick-btn" onclick="navigateTo('history')">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>السجل</span>
+          </div>
+        </div>
+
+        <div id="home-last-dose"></div>
+
+        <div class="card">
+          <div class="card-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            معلومات سريعة
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="stat-card">
+              <div class="stat-value" id="home-isf">-</div>
+              <div class="stat-label">معامل الحساسية</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="home-carb-ratio">-</div>
+              <div class="stat-label">معامل الكربوهيدرات</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CALCULATOR SCREEN ===== -->
+      <div class="screen" id="screen-calc">
+        <div class="card">
+          <div class="card-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+            نوع الوجبة
+          </div>
+          <div class="meal-type-selector">
+            <button class="meal-type-btn active" data-meal="breakfast" onclick="selectMealType('breakfast')">الفطور</button>
+            <button class="meal-type-btn" data-meal="lunch" onclick="selectMealType('lunch')">الغداء</button>
+            <button class="meal-type-btn" data-meal="dinner" onclick="selectMealType('dinner')">العشاء</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-header">
+            <div class="card-title" style="margin:0">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+              </svg>
+              مكونات الوجبة
+            </div>
+            <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600" id="total-carbs-badge">0 جرام كربوهيدرات</span>
+          </div>
+          <div id="meal-items-list"></div>
+          <div class="add-food-to-meal" onclick="openFoodSelector()">
+            + إضافة صنف للوجبة
+          </div>
+        </div>
+
+        <div class="bg-section">
+          <div class="bg-section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            قراءة السكر في الدم
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">
+              مستوى السكر الحالي (mg/dL)
+              <span class="info-badge" title="أدخلي قراءة السكر الحالية من جهاز القياس">?</span>
+            </label>
+            <input type="number" class="form-input" id="bg-input" placeholder="مثال: 120" min="30" max="600">
+            <p class="form-hint">هذا الحقل إجباري لحساب جرعة التصحيح</p>
+          </div>
+        </div>
+
+        <div class="result-card" id="result-card" style="display:none">
+          <div class="result-label">جرعة الإنسولين المُحتسبة</div>
+          <div class="result-value" id="result-dose">0.0</div>
+          <div class="result-unit">وحدة أنسولين</div>
+          <div class="result-breakdown">
+            <div class="result-detail">
+              <div class="result-detail-value" id="result-meal-dose">0.0</div>
+              <div>للوجبة</div>
+            </div>
+            <div class="result-detail">
+              <div class="result-detail-value" id="result-correction-dose">0.0</div>
+              <div>تصحيح</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="calculateInsulin()" id="calc-btn" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+          احسبي جرعة الإنسولين
+        </button>
+      </div>
+
+      <!-- ===== FOODS SCREEN ===== -->
+      <div class="screen" id="screen-foods">
+        <div class="tabs">
+          <button class="tab active" onclick="switchFoodTab('foods')">الأطعمة</button>
+          <button class="tab" onclick="switchFoodTab('units')">وحدات القياس</button>
+        </div>
+
+        <div class="tab-content active" id="tab-foods">
+          <div class="search-box">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" class="search-input" id="food-search" placeholder="ابحثي عن صنف..." oninput="renderFoods()">
+          </div>
+          <div id="foods-list"></div>
+        </div>
+
+        <div class="tab-content" id="tab-units">
+          <div id="units-list"></div>
+        </div>
+
+        <button class="btn btn-fab" onclick="showAddModal()">+</button>
+      </div>
+
+      <!-- ===== SETTINGS SCREEN ===== -->
+      <div class="screen" id="screen-settings">
+        <div class="card">
+          <div class="card-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+            المعايير الطبية
+          </div>
+          <p class="section-subtitle">حددي هذه القيم بالتشاور مع طبيبكِ</p>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-name">معامل حساسية الإنسولين (ISF)</div>
+              <div class="setting-desc">عدد نقاط انخفاض السكر بوحدة أنسولين واحدة</div>
+            </div>
+            <div class="setting-value">
+              <input type="number" class="setting-input" id="setting-isf" value="50" min="1" max="200">
+              <span class="setting-unit">mg/dL</span>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-name">السكر المستهدف</div>
+              <div class="setting-desc">مستوى السكر المثالي الذي تريدين الوصول إليه</div>
+            </div>
+            <div class="setting-value">
+              <input type="number" class="setting-input" id="setting-target" value="100" min="70" max="180">
+              <span class="setting-unit">mg/dL</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 16a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm1-5h-2V7h2z"/>
+            </svg>
+            معامل الكربوهيدرات (Carb Ratio)
+          </div>
+          <p class="section-subtitle">جرعة الأنسولين لكل جرام كربوهيدرات</p>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-name">وجبة الفطور</div>
+              <div class="setting-desc">جرعة الأنسولين لكل جرام كربوهيدرات في الفطور</div>
+            </div>
+            <div class="setting-value">
+              <input type="number" class="setting-input" id="setting-carb-breakfast" value="12" min="1" max="50" step="0.1">
+              <span class="setting-unit">جرام/U</span>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-name">وجبة الغداء</div>
+              <div class="setting-desc">جرعة الأنسولين لكل جرام كربوهيدرات في الغداء</div>
+            </div>
+            <div class="setting-value">
+              <input type="number" class="setting-input" id="setting-carb-lunch" value="10" min="1" max="50" step="0.1">
+              <span class="setting-unit">جرام/U</span>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-name">وجبة العشاء</div>
+              <div class="setting-desc">جرعة الأنسولين لكل جرام كربوهيدرات في العشاء</div>
+            </div>
+            <div class="setting-value">
+              <input type="number" class="setting-input" id="setting-carb-dinner" value="12" min="1" max="50" step="0.1">
+              <span class="setting-unit">جرام/U</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="saveSettings()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            حفظ الإعدادات
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            النسخ الاحتياطي
+          </div>
+          <p class="section-subtitle">احفظي بياناتكِ أو استرجعيها</p>
+          <div class="export-section">
+            <button class="btn btn-success btn-sm btn-block" onclick="exportData()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              تصدير
+            </button>
+            <div class="file-input-wrapper btn btn-secondary btn-sm btn-block" style="text-align:center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              استيراد
+              <input type="file" id="import-file" accept=".json" onchange="importData(this)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== HISTORY SCREEN ===== -->
+      <div class="screen" id="screen-history">
+        <div class="card">
+          <div class="card-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            سجل الجرعات
+          </div>
+          <div id="history-list"></div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-screen="home" onclick="navigateTo('home')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        الرئيسية
+      </button>
+      <button class="nav-item" data-screen="calc" onclick="navigateTo('calc')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/>
+        </svg>
+        الحاسبة
+      </button>
+      <button class="nav-item" data-screen="foods" onclick="navigateTo('foods')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+        </svg>
+        الأطعمة
+      </button>
+      <button class="nav-item" data-screen="settings" onclick="navigateTo('settings')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        الإعدادات
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Add Food Modal -->
+  <div class="modal-overlay" id="modal-add-food">
+    <div class="modal">
+      <div class="modal-title">إضافة صنف طعام جديد</div>
+      <div class="form-group">
+        <label class="form-label">اسم الصنف</label>
+        <input type="text" class="form-input" id="add-food-name" placeholder="مثال: خبز أبيض">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الكربوهيدرات لكل وحدة</label>
+        <input type="number" class="form-input" id="add-food-carbs" placeholder="مثال: 15" min="0" step="0.1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">وحدة القياس</label>
+        <select class="form-select" id="add-food-unit"></select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-block" onclick="closeModal('modal-add-food')">إلغاء</button>
+        <button class="btn btn-primary btn-block" onclick="addFood()">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Unit Modal -->
+  <div class="modal-overlay" id="modal-add-unit">
+    <div class="modal">
+      <div class="modal-title">إضافة وحدة قياس جديدة</div>
+      <div class="form-group">
+        <label class="form-label">اسم الوحدة</label>
+        <input type="text" class="form-input" id="add-unit-name" placeholder="مثال: شريحة، ملعقة، طبق">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الوصف (اختياري)</label>
+        <input type="text" class="form-input" id="add-unit-desc" placeholder="مثال: شريحة خبز متوسطة">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-block" onclick="closeModal('modal-add-unit')">إلغاء</button>
+        <button class="btn btn-primary btn-block" onclick="addUnit()">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Food Modal -->
+  <div class="modal-overlay" id="modal-edit-food">
+    <div class="modal">
+      <div class="modal-title">تعديل صنف الطعام</div>
+      <input type="hidden" id="edit-food-id">
+      <div class="form-group">
+        <label class="form-label">اسم الصنف</label>
+        <input type="text" class="form-input" id="edit-food-name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الكربوهيدرات لكل وحدة</label>
+        <input type="number" class="form-input" id="edit-food-carbs" min="0" step="0.1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">وحدة القياس</label>
+        <select class="form-select" id="edit-food-unit"></select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger btn-block" onclick="deleteFoodFromEdit()">حذف</button>
+        <button class="btn btn-secondary btn-block" onclick="closeModal('modal-edit-food')">إلغاء</button>
+        <button class="btn btn-primary btn-block" onclick="updateFood()">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Unit Modal -->
+  <div class="modal-overlay" id="modal-edit-unit">
+    <div class="modal">
+      <div class="modal-title">تعديل وحدة القياس</div>
+      <input type="hidden" id="edit-unit-id">
+      <div class="form-group">
+        <label class="form-label">اسم الوحدة</label>
+        <input type="text" class="form-input" id="edit-unit-name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الوصف (اختياري)</label>
+        <input type="text" class="form-input" id="edit-unit-desc">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger btn-block" onclick="deleteUnitFromEdit()">حذف</button>
+        <button class="btn btn-secondary btn-block" onclick="closeModal('modal-edit-unit')">إلغاء</button>
+        <button class="btn btn-primary btn-block" onclick="updateUnit()">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Food Selector for Meal -->
+  <div class="food-selector-overlay" id="food-selector">
+    <div class="food-selector">
+      <div class="food-selector-header">
+        <div class="food-selector-title">اختيار الصنف</div>
+        <button class="food-selector-close" onclick="closeFoodSelector()">&times;</button>
+      </div>
+      <div class="food-selector-search">
+        <input type="text" class="search-input" id="selector-search" placeholder="ابحثي..." oninput="renderFoodSelector()">
+      </div>
+      <div class="food-selector-list" id="food-selector-list"></div>
+    </div>
+  </div>
+
+  <!-- Quantity Modal -->
+  <div class="modal-overlay" id="modal-quantity">
+    <div class="modal">
+      <div class="modal-title" id="quantity-title">تحديد الكمية</div>
+      <input type="hidden" id="quantity-food-id">
+      <div class="quantity-input-section">
+        <div class="quantity-display" id="quantity-display">1.0</div>
+        <input type="range" class="quantity-slider" id="quantity-slider" min="0.1" max="10" step="0.1" value="1" oninput="updateQuantityDisplay(this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+          <span>0.1</span>
+          <span id="quantity-unit-label">وحدة</span>
+          <span>10</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-block" onclick="closeModal('modal-quantity')">إلغاء</button>
+        <button class="btn btn-primary btn-block" onclick="confirmAddToMeal()">إضافة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+
+  <script>
+    // ===== STATE MANAGEMENT =====
+    const AppState = {
+      currentScreen: 'home',
+      currentMealType: 'breakfast',
+      currentMealItems: [],
+      foodTab: 'foods',
+      selectedFoodForMeal: null,
+      editingFoodId: null,
+      editingUnitId: null,
+    };
+
+    // ===== DEFAULT DATA =====
+    const DEFAULT_UNITS = [
+      { id: 'unit_1', name: 'قطعة', description: 'قطعة واحدة' },
+      { id: 'unit_2', name: 'شريحة', description: 'شريحة واحدة' },
+      { id: 'unit_3', name: 'ملعقة', description: 'ملعقة متوسطة' },
+      { id: 'unit_4', name: 'كوب', description: 'كوب معياري' },
+      { id: 'unit_5', name: 'طبق', description: 'طبق متوسط' },
+      { id: 'unit_6', name: '100 جرام', description: 'مئة جرام' },
+      { id: 'unit_7', name: 'حبة', description: 'حبة واحدة' },
+      { id: 'unit_8', name: 'علبة', description: 'علبة واحدة' },
+    ];
+
+    const DEFAULT_FOODS = [
+      { id: 'food_1', name: 'خبز أبيض', carbsPerUnit: 15, unitId: 'unit_2' },
+      { id: 'food_2', name: 'خبز أسمر', carbsPerUnit: 12, unitId: 'unit_2' },
+      { id: 'food_3', name: 'أرز أبيض مطبوخ', carbsPerUnit: 28, unitId: 'unit_4' },
+      { id: 'food_4', name: 'معكرونة مطبوخة', carbsPerUnit: 30, unitId: 'unit_4' },
+      { id: 'food_5', name: 'تفاح', carbsPerUnit: 15, unitId: 'unit_7' },
+      { id: 'food_6', name: 'موزة', carbsPerUnit: 27, unitId: 'unit_7' },
+      { id: 'food_7', name: 'حليب', carbsPerUnit: 12, unitId: 'unit_4' },
+      { id: 'food_8', name: 'لبن زبادي', carbsPerUnit: 8, unitId: 'unit_8' },
+      { id: 'food_9', name: 'بيضة', carbsPerUnit: 0.6, unitId: 'unit_7' },
+      { id: 'food_10', name: 'جبن أبيض', carbsPerUnit: 1, unitId: 'unit_2' },
+      { id: 'food_11', name: 'فول مدمس', carbsPerUnit: 25, unitId: 'unit_5' },
+      { id: 'food_12', name: 'فلافل', carbsPerUnit: 15, unitId: 'unit_7' },
+      { id: 'food_13', name: 'شوفان', carbsPerUnit: 54, unitId: 'unit_4' },
+      { id: 'food_14', name: 'تمر', carbsPerUnit: 18, unitId: 'unit_7' },
+      { id: 'food_15', name: 'عصير برتقال', carbsPerUnit: 26, unitId: 'unit_4' },
+    ];
+
+    const DEFAULT_SETTINGS = {
+      isf: 50,
+      targetBG: 100,
+      carbRatios: {
+        breakfast: 12,
+        lunch: 10,
+        dinner: 12
+      }
+    };
+
+    // ===== STORAGE =====
+    function getStorage(key, defaultValue) {
+      try {
+        const data = localStorage.getItem('insulinCalc_' + key);
+        return data ? JSON.parse(data) : defaultValue;
+      } catch {
+        return defaultValue;
+      }
+    }
+
+    function setStorage(key, value) {
+      localStorage.setItem('insulinCalc_' + key, JSON.stringify(value));
+    }
+
+    function initData() {
+      if (!localStorage.getItem('insulinCalc_initialized')) {
+        setStorage('settings', DEFAULT_SETTINGS);
+        setStorage('foods', DEFAULT_FOODS);
+        setStorage('units', DEFAULT_UNITS);
+        setStorage('history', []);
+        setStorage('initialized', true);
+      }
+    }
+
+    function getSettings() { return getStorage('settings', DEFAULT_SETTINGS); }
+    function getFoods() { return getStorage('foods', DEFAULT_FOODS); }
+    function getUnits() { return getStorage('units', DEFAULT_UNITS); }
+    function getHistory() { return getStorage('history', []); }
+
+    // ===== NAVIGATION =====
+    function navigateTo(screen) {
+      AppState.currentScreen = screen;
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + screen)?.classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.nav-item[data-screen="' + screen + '"]').forEach(n => n.classList.add('active'));
+
+      // Update screen-specific data
+      if (screen === 'home') renderHome();
+      if (screen === 'calc') renderCalc();
+      if (screen === 'foods') renderFoods();
+      if (screen === 'history') renderHistory();
+      if (screen === 'settings') loadSettings();
+
+      // Hide FAB
+      document.querySelector('.btn-fab').style.display = screen === 'foods' ? 'flex' : 'none';
+    }
+
+    // ===== TOAST =====
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ===== MODALS =====
+    function showModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function showAddModal() {
+      if (AppState.foodTab === 'foods') {
+        document.getElementById('add-food-name').value = '';
+        document.getElementById('add-food-carbs').value = '';
+        populateUnitSelect('add-food-unit');
+        showModal('modal-add-food');
+      } else {
+        document.getElementById('add-unit-name').value = '';
+        document.getElementById('add-unit-desc').value = '';
+        showModal('modal-add-unit');
+      }
+    }
+
+    function populateUnitSelect(selectId, selectedUnitId) {
+      const select = document.getElementById(selectId);
+      const units = getUnits();
+      select.innerHTML = units.map(u =>
+        '<option value="' + u.id + '"' + (u.id === selectedUnitId ? ' selected' : '') + '>' + u.name + '</option>'
+      ).join('');
+    }
+
+    // ===== HOME SCREEN =====
+    function renderHome() {
+      const settings = getSettings();
+      document.getElementById('home-isf').textContent = settings.isf;
+      document.getElementById('home-carb-ratio').textContent = settings.carbRatios.lunch;
+
+      // Welcome message based on time
+      const hour = new Date().getHours();
+      let greeting = 'أهلاً بكِ';
+      if (hour >= 5 && hour < 12) greeting = 'صباح الخير';
+      else if (hour >= 12 && hour < 17) greeting = 'مساء النور';
+      else greeting = 'مساء الخير';
+      document.getElementById('welcome-message').textContent = greeting;
+
+      // Last dose
+      const history = getHistory();
+      const lastDoseContainer = document.getElementById('home-last-dose');
+      if (history.length > 0) {
+        const last = history[history.length - 1];
+        const mealNames = { breakfast: 'الفطور', lunch: 'الغداء', dinner: 'العشاء' };
+        lastDoseContainer.innerHTML = `
+          <div class="last-dose-card">
+            <div class="last-dose-header">
+              <div class="last-dose-title">آخر جرعة</div>
+              <div class="last-dose-date">${formatDate(last.date)}</div>
+            </div>
+            <div class="last-dose-details">
+              <div class="dose-detail">
+                <div class="dose-detail-value">${last.dose.toFixed(1)}</div>
+                <div class="dose-detail-label">وحدة أنسولين</div>
+              </div>
+              <div class="dose-detail">
+                <div class="dose-detail-value">${last.totalCarbs}</div>
+                <div class="dose-detail-label">جرام كربوهيدرات</div>
+              </div>
+              <div class="dose-detail">
+                <div class="dose-detail-value">${last.currentBG}</div>
+                <div class="dose-detail-label">مستوى السكر</div>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:10px;font-size:0.85rem;color:var(--text-muted)">${mealNames[last.mealType] || ''}</div>
+          </div>
+        `;
+      } else {
+        lastDoseContainer.innerHTML = `
+          <div class="last-dose-card" style="text-align:center;padding:20px;color:var(--text-muted)">
+            <p>لا توجد جرعات مسجلة بعد</p>
+            <p style="font-size:0.85rem;margin-top:8px">استخدمي الحاسبة لتسجيل جرعتكِ الأولى</p>
+          </div>
+        `;
+      }
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ===== CALCULATOR SCREEN =====
+    function selectMealType(type) {
+      AppState.currentMealType = type;
+      document.querySelectorAll('.meal-type-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.meal-type-btn[data-meal="' + type + '"]').classList.add('active');
+    }
+
+    function renderCalc() {
+      renderMealItems();
+      updateCalcButton();
+    }
+
+    function renderMealItems() {
+      const container = document.getElementById('meal-items-list');
+      const units = getUnits();
+      const foods = getFoods();
+
+      if (AppState.currentMealItems.length === 0) {
+        container.innerHTML = '';
+      } else {
+        container.innerHTML = AppState.currentMealItems.map((item, index) => {
+          const food = foods.find(f => f.id === item.foodId);
+          const unit = units.find(u => u.id === (food?.unitId || 'unit_1'));
+          const totalCarbs = ((food?.carbsPerUnit || 0) * item.quantity).toFixed(1);
+          return `
+            <div class="meal-item">
+              <div class="meal-item-info">
+                <div class="meal-item-name">${food?.name || 'Unknown'}</div>
+                <div class="meal-item-carbs">${item.quantity} ${unit?.name || ''} = ${totalCarbs}g كربوهيدرات</div>
+              </div>
+              <div class="meal-item-actions">
+                <button class="icon-btn icon-btn-edit" onclick="editMealItem(${index})">✎</button>
+                <button class="icon-btn icon-btn-delete" onclick="removeMealItem(${index})">&times;</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const totalCarbs = AppState.currentMealItems.reduce((sum, item) => {
+        const food = foods.find(f => f.id === item.foodId);
+        return sum + ((food?.carbsPerUnit || 0) * item.quantity);
+      }, 0);
+      document.getElementById('total-carbs-badge').textContent = totalCarbs.toFixed(1) + ' جرام كربوهيدرات';
+    }
+
+    function editMealItem(index) {
+      const item = AppState.currentMealItems[index];
+      const foods = getFoods();
+      const food = foods.find(f => f.id === item.foodId);
+      AppState.selectedFoodForMeal = { ...item, index };
+      document.getElementById('quantity-title').textContent = 'تعديل الكمية - ' + (food?.name || '');
+      document.getElementById('quantity-food-id').value = item.foodId;
+      document.getElementById('quantity-slider').value = item.quantity;
+      document.getElementById('quantity-unit-label').textContent = (getUnits().find(u => u.id === food?.unitId)?.name || '');
+      updateQuantityDisplay(item.quantity);
+      showModal('modal-quantity');
+    }
+
+    function removeMealItem(index) {
+      AppState.currentMealItems.splice(index, 1);
+      renderMealItems();
+      updateCalcButton();
+    }
+
+    function openFoodSelector() {
+      document.getElementById('selector-search').value = '';
+      renderFoodSelector();
+      document.getElementById('food-selector').classList.add('active');
+    }
+
+    function closeFoodSelector() {
+      document.getElementById('food-selector').classList.remove('active');
+    }
+
+    function renderFoodSelector() {
+      const search = document.getElementById('selector-search').value.toLowerCase();
+      const foods = getFoods();
+      const units = getUnits();
+      const filtered = foods.filter(f => f.name.toLowerCase().includes(search));
+
+      const container = document.getElementById('food-selector-list');
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>لا توجد نتائج</p></div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(food => {
+        const unit = units.find(u => u.id === food.unitId);
+        return `
+          <div class="food-option" onclick="selectFoodForMeal('${food.id}')">
+            <div class="food-option-info">
+              <div class="food-option-name">${food.name}</div>
+              <div class="food-option-carbs">${food.carbsPerUnit}g كربوهيدرات / ${unit?.name || 'وحدة'}</div>
+            </div>
+            <button class="food-option-add">+</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectFoodForMeal(foodId) {
+      const foods = getFoods();
+      const food = foods.find(f => f.id === foodId);
+      if (!food) return;
+
+      AppState.selectedFoodForMeal = { foodId, quantity: 1, index: -1 };
+      document.getElementById('quantity-title').textContent = 'تحديد الكمية - ' + food.name;
+      document.getElementById('quantity-food-id').value = foodId;
+      document.getElementById('quantity-slider').value = 1;
+      document.getElementById('quantity-unit-label').textContent = (getUnits().find(u => u.id === food.unitId)?.name || '');
+      updateQuantityDisplay(1);
+      closeFoodSelector();
+      showModal('modal-quantity');
+    }
+
+    function updateQuantityDisplay(val) {
+      document.getElementById('quantity-display').textContent = parseFloat(val).toFixed(1);
+    }
+
+    function confirmAddToMeal() {
+      const quantity = parseFloat(document.getElementById('quantity-slider').value);
+      if (!AppState.selectedFoodForMeal) return;
+
+      if (AppState.selectedFoodForMeal.index >= 0) {
+        AppState.currentMealItems[AppState.selectedFoodForMeal.index].quantity = quantity;
+      } else {
+        AppState.currentMealItems.push({
+          foodId: AppState.selectedFoodForMeal.foodId,
+          quantity: quantity
+        });
+      }
+
+      closeModal('modal-quantity');
+      renderMealItems();
+      updateCalcButton();
+      showToast('تمت إضافة الصنف للوجبة');
+    }
+
+    function updateCalcButton() {
+      const hasItems = AppState.currentMealItems.length > 0;
+      const btn = document.getElementById('calc-btn');
+      btn.disabled = !hasItems;
+    }
+
+    function calculateInsulin() {
+      const bgInput = document.getElementById('bg-input');
+      const currentBG = parseFloat(bgInput.value);
+
+      if (!bgInput.value || isNaN(currentBG) || currentBG < 30 || currentBG > 600) {
+        showToast('الرجاء إدخال قراءة سكر صحيحة (30-600)', 'error');
+        bgInput.focus();
+        return;
+      }
+
+      const settings = getSettings();
+      const foods = getFoods();
+
+      const totalCarbs = AppState.currentMealItems.reduce((sum, item) => {
+        const food = foods.find(f => f.id === item.foodId);
+        return sum + ((food?.carbsPerUnit || 0) * item.quantity);
+      }, 0);
+
+      const carbRatio = settings.carbRatios[AppState.currentMealType] || 10;
+      const mealDose = totalCarbs / carbRatio;
+      const correctionDose = Math.max(0, (currentBG - settings.targetBG) / settings.isf);
+      const totalDose = mealDose + correctionDose;
+
+      // Show result
+      document.getElementById('result-card').style.display = 'block';
+      document.getElementById('result-dose').textContent = totalDose.toFixed(1);
+      document.getElementById('result-meal-dose').textContent = mealDose.toFixed(1) + 'U';
+      document.getElementById('result-correction-dose').textContent = correctionDose.toFixed(1) + 'U';
+
+      // Save to history
+      const history = getHistory();
+      history.push({
+        id: 'dose_' + Date.now(),
+        date: new Date().toISOString(),
+        mealType: AppState.currentMealType,
+        totalCarbs: Math.round(totalCarbs * 10) / 10,
+        currentBG: currentBG,
+        dose: Math.round(totalDose * 10) / 10,
+        mealDose: Math.round(mealDose * 10) / 10,
+        correctionDose: Math.round(correctionDose * 10) / 10,
+        items: [...AppState.currentMealItems]
+      });
+      setStorage('history', history);
+
+      // Scroll to result
+      document.getElementById('result-card').scrollIntoView({ behavior: 'smooth' });
+
+      showToast('تم حساب الجرعة وحفظها في السجل');
+    }
+
+    // ===== FOODS & UNITS =====
+    function switchFoodTab(tab) {
+      AppState.foodTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      if (tab === 'foods') renderFoods();
+      else renderUnits();
+    }
+
+    function renderFoods() {
+      const search = document.getElementById('food-search').value.toLowerCase();
+      const foods = getFoods();
+      const units = getUnits();
+      const filtered = foods.filter(f => f.name.toLowerCase().includes(search));
+
+      const container = document.getElementById('foods-list');
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+            </svg>
+            <h3>لا توجد أصناف</h3>
+            <p>اضغطي على الزر + لإضافة صنف جديد</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(food => {
+        const unit = units.find(u => u.id === food.unitId);
+        return `
+          <div class="food-card">
+            <div class="food-info">
+              <div class="food-name">${food.name}</div>
+              <div class="food-meta">${food.carbsPerUnit}g كربوهيدرات / ${unit?.name || 'وحدة'}</div>
+            </div>
+            <div class="food-actions">
+              <button class="icon-btn icon-btn-edit" onclick="openEditFood('${food.id}')">✎</button>
+              <button class="icon-btn icon-btn-delete" onclick="deleteFood('${food.id}')">&times;</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderUnits() {
+      const units = getUnits();
+      const container = document.getElementById('units-list');
+
+      if (units.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>لا توجد وحدات قياس</h3>
+            <p>اضغطي على الزر + لإضافة وحدة جديدة</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = units.map(unit => `
+        <div class="unit-card">
+          <div>
+            <div class="unit-info-name">${unit.name}</div>
+            ${unit.description ? '<div class="unit-info-desc">' + unit.description + '</div>' : ''}
+          </div>
+          <div class="food-actions">
+            <button class="icon-btn icon-btn-edit" onclick="openEditUnit('${unit.id}')">✎</button>
+            <button class="icon-btn icon-btn-delete" onclick="deleteUnit('${unit.id}')">&times;</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addFood() {
+      const name = document.getElementById('add-food-name').value.trim();
+      const carbs = parseFloat(document.getElementById('add-food-carbs').value);
+      const unitId = document.getElementById('add-food-unit').value;
+
+      if (!name) { showToast('الرجاء إدخال اسم الصنف', 'error'); return; }
+      if (isNaN(carbs) || carbs < 0) { showToast('الرجاء إدخال كمية كربوهيدرات صحيحة', 'error'); return; }
+
+      const foods = getFoods();
+      foods.push({
+        id: 'food_' + Date.now(),
+        name,
+        carbsPerUnit: carbs,
+        unitId
+      });
+      setStorage('foods', foods);
+      closeModal('modal-add-food');
+      renderFoods();
+      showToast('تمت إضافة الصنف بنجاح');
+    }
+
+    function addUnit() {
+      const name = document.getElementById('add-unit-name').value.trim();
+      const desc = document.getElementById('add-unit-desc').value.trim();
+
+      if (!name) { showToast('الرجاء إدخال اسم الوحدة', 'error'); return; }
+
+      const units = getUnits();
+      units.push({
+        id: 'unit_' + Date.now(),
+        name,
+        description: desc
+      });
+      setStorage('units', units);
+      closeModal('modal-add-unit');
+      renderUnits();
+      showToast('تمت إضافة الوحدة بنجاح');
+    }
+
+    function openEditFood(id) {
+      const foods = getFoods();
+      const food = foods.find(f => f.id === id);
+      if (!food) return;
+
+      AppState.editingFoodId = id;
+      document.getElementById('edit-food-id').value = id;
+      document.getElementById('edit-food-name').value = food.name;
+      document.getElementById('edit-food-carbs').value = food.carbsPerUnit;
+      populateUnitSelect('edit-food-unit', food.unitId);
+      showModal('modal-edit-food');
+    }
+
+    function openEditUnit(id) {
+      const units = getUnits();
+      const unit = units.find(u => u.id === id);
+      if (!unit) return;
+
+      AppState.editingUnitId = id;
+      document.getElementById('edit-unit-id').value = id;
+      document.getElementById('edit-unit-name').value = unit.name;
+      document.getElementById('edit-unit-desc').value = unit.description || '';
+      showModal('modal-edit-unit');
+    }
+
+    function updateFood() {
+      const id = AppState.editingFoodId;
+      const name = document.getElementById('edit-food-name').value.trim();
+      const carbs = parseFloat(document.getElementById('edit-food-carbs').value);
+      const unitId = document.getElementById('edit-food-unit').value;
+
+      if (!name) { showToast('الرجاء إدخال اسم الصنف', 'error'); return; }
+      if (isNaN(carbs) || carbs < 0) { showToast('الرجاء إدخال كمية كربوهيدرات صحيحة', 'error'); return; }
+
+      const foods = getFoods();
+      const idx = foods.findIndex(f => f.id === id);
+      if (idx >= 0) {
+        foods[idx] = { ...foods[idx], name, carbsPerUnit: carbs, unitId };
+        setStorage('foods', foods);
+      }
+      closeModal('modal-edit-food');
+      renderFoods();
+      showToast('تم تحديث الصنف');
+    }
+
+    function updateUnit() {
+      const id = AppState.editingUnitId;
+      const name = document.getElementById('edit-unit-name').value.trim();
+      const desc = document.getElementById('edit-unit-desc').value.trim();
+
+      if (!name) { showToast('الرجاء إدخال اسم الوحدة', 'error'); return; }
+
+      const units = getUnits();
+      const idx = units.findIndex(u => u.id === id);
+      if (idx >= 0) {
+        units[idx] = { ...units[idx], name, description: desc };
+        setStorage('units', units);
+      }
+      closeModal('modal-edit-unit');
+      renderUnits();
+      showToast('تم تحديث الوحدة');
+    }
+
+    function deleteFood(id) {
+      if (!confirm('هل أنتِ متأكدة من حذف هذا الصنف؟')) return;
+      const foods = getFoods().filter(f => f.id !== id);
+      setStorage('foods', foods);
+      renderFoods();
+      showToast('تم حذف الصنف');
+    }
+
+    function deleteUnit(id) {
+      if (!confirm('هل أنتِ متأكدة من حذف هذه الوحدة؟')) return;
+      const units = getUnits().filter(u => u.id !== id);
+      setStorage('units', units);
+      renderUnits();
+      showToast('تم حذف الوحدة');
+    }
+
+    function deleteFoodFromEdit() {
+      const id = AppState.editingFoodId;
+      closeModal('modal-edit-food');
+      deleteFood(id);
+    }
+
+    function deleteUnitFromEdit() {
+      const id = AppState.editingUnitId;
+      closeModal('modal-edit-unit');
+      deleteUnit(id);
+    }
+
+    // ===== SETTINGS =====
+    function loadSettings() {
+      const settings = getSettings();
+      document.getElementById('setting-isf').value = settings.isf;
+      document.getElementById('setting-target').value = settings.targetBG;
+      document.getElementById('setting-carb-breakfast').value = settings.carbRatios.breakfast;
+      document.getElementById('setting-carb-lunch').value = settings.carbRatios.lunch;
+      document.getElementById('setting-carb-dinner').value = settings.carbRatios.dinner;
+    }
+
+    function saveSettings() {
+      const isf = parseFloat(document.getElementById('setting-isf').value);
+      const targetBG = parseFloat(document.getElementById('setting-target').value);
+      const breakfast = parseFloat(document.getElementById('setting-carb-breakfast').value);
+      const lunch = parseFloat(document.getElementById('setting-carb-lunch').value);
+      const dinner = parseFloat(document.getElementById('setting-carb-dinner').value);
+
+      if (isNaN(isf) || isf < 1) { showToast('الرجاء إدخال معامل حساسية صحيح', 'error'); return; }
+      if (isNaN(targetBG) || targetBG < 70) { showToast('الرجاء إدخال سكر مستهدف صحيح', 'error'); return; }
+      if (isNaN(breakfast) || breakfast < 1) { showToast('الرجاء إدخال معامل كربوهيدرات الفطور', 'error'); return; }
+      if (isNaN(lunch) || lunch < 1) { showToast('الرجاء إدخال معامل كربوهيدرات الغداء', 'error'); return; }
+      if (isNaN(dinner) || dinner < 1) { showToast('الرجاء إدخال معامل كربوهيدرات العشاء', 'error'); return; }
+
+      setStorage('settings', {
+        isf,
+        targetBG,
+        carbRatios: { breakfast, lunch, dinner }
+      });
+      showToast('تم حفظ الإعدادات بنجاح');
+      renderHome();
+    }
+
+    // ===== HISTORY =====
+    function renderHistory() {
+      const history = getHistory();
+      const container = document.getElementById('history-list');
+      const mealNames = { breakfast: 'الفطور', lunch: 'الغداء', dinner: 'العشاء' };
+
+      if (history.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <h3>لا توجد جرعات مسجلة</h3>
+            <p>استخدمي الحاسبة لتسجيل جرعاتكِ</p>
+          </div>
+        `;
+        return;
+      }
+
+      const reversed = [...history].reverse();
+      container.innerHTML = reversed.map(dose => `
+        <div class="history-item">
+          <div class="history-header">
+            <div class="history-date">${formatDate(dose.date)}</div>
+            <div class="history-meal-type">${mealNames[dose.mealType] || ''}</div>
+          </div>
+          <div class="history-details">
+            <div class="history-detail">
+              <div class="history-detail-value">${dose.dose.toFixed(1)}U</div>
+              <div class="history-detail-label">الجرعة الكلية</div>
+            </div>
+            <div class="history-detail">
+              <div class="history-detail-value">${dose.totalCarbs}g</div>
+              <div class="history-detail-label">الكربوهيدرات</div>
+            </div>
+            <div class="history-detail">
+              <div class="history-detail-value">${dose.currentBG}</div>
+              <div class="history-detail-label">السكر</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ===== EXPORT / IMPORT =====
+    function exportData() {
+      const data = {
+        settings: getSettings(),
+        foods: getFoods(),
+        units: getUnits(),
+        history: getHistory(),
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'insulin-calc-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('تم تصدير البيانات بنجاح');
+    }
+
+    function importData(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (!data.settings || !data.foods || !data.units) {
+            showToast('ملف غير صالح', 'error');
+            return;
+          }
+
+          if (confirm('هل أنتِ متأكدة من استيراد هذا الملف؟ سيتم استبدال جميع البيانات الحالية.')) {
+            setStorage('settings', data.settings);
+            setStorage('foods', data.foods);
+            setStorage('units', data.units);
+            if (data.history) setStorage('history', data.history);
+            setStorage('initialized', true);
+            showToast('تم استيراد البيانات بنجاح');
+            renderHome();
+          }
+        } catch {
+          showToast('خطأ في قراءة الملف', 'error');
+        }
+      };
+      reader.readAsText(file);
+      input.value = '';
+    }
+
+    // ===== INITIALIZATION =====
+    function init() {
+      initData();
+      renderHome();
+      navigateTo('home');
+
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+      });
+    });
+
+    // Close food selector on overlay click
+    document.getElementById('food-selector').addEventListener('click', function(e) {
+      if (e.target === this) closeFoodSelector();
+    });
+
+    // Start
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
