@@ -7,7 +7,7 @@
   "background_color": "#FFF0F5",
   "theme_color": "#EC4899",
   "orientation": "portrait",
-  "scope": "/",
+  "scope": "/insulin-calc/",
   "lang": "ar",
   "dir": "rtl",
   "icons": [
