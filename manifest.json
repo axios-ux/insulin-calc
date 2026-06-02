@@ -2,7 +2,7 @@
   "name": "حاسبة الإنسولين الذكية",
   "short_name": "إنسولين",
   "description": "حاسبة ذكية لمرضى السكري النوع الأول",
-  "start_url": "/",
+  "start_url": "https://axios-ux.github.io/insulin-calc/",
   "display": "standalone",
   "background_color": "#FFF0F5",
   "theme_color": "#EC4899",
